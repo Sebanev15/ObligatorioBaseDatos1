@@ -1,0 +1,55 @@
+name: torneo-futbol5
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE}"
+      DB_ADMIN_PASSWORD: "${DB_ADMIN_PASSWORD}"
+      DB_PLANILLERO_PASSWORD: "${DB_PLANILLERO_PASSWORD}"
+      DB_AUTH_PASSWORD: "${DB_AUTH_PASSWORD}"
+      TZ: America/Montevideo
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/init:/docker-entrypoint-initdb.d:ro,z
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: "${MYSQL_DATABASE}"
+      DB_ADMIN_PASSWORD: "${DB_ADMIN_PASSWORD}"
+      DB_PLANILLERO_PASSWORD: "${DB_PLANILLERO_PASSWORD}"
+      DB_AUTH_PASSWORD: "${DB_AUTH_PASSWORD}"
+      JWT_SECRET: "${JWT_SECRET}"
+      JWT_EXPIRE_MINUTES: "${JWT_EXPIRE_MINUTES:-480}"
+      TZ: America/Montevideo
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  db_data:
