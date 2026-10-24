@@ -6,10 +6,11 @@ CREATE TABLE login (
 );
 
 CREATE TABLE facultad (
-    id_facultad SERIAL       PRIMARY KEY,
+    id_facultad INT AUTO_INCREMENT       PRIMARY KEY,
     nombre      VARCHAR(150) NOT NULL UNIQUE
 );
 
+-- Listo en backend
 CREATE TABLE jugador (
     ci               INTEGER      PRIMARY KEY,
     nombre           VARCHAR(100) NOT NULL,
@@ -24,7 +25,7 @@ CREATE TABLE jugador (
 );
 
 CREATE TABLE torneo (
-    id_torneo    SERIAL       PRIMARY KEY,
+    id_torneo    INT AUTO_INCREMENT       PRIMARY KEY,
     nombre       VARCHAR(150) NOT NULL,
     anio         INTEGER      NOT NULL,
     semestre     INTEGER      NOT NULL CHECK (semestre IN (1, 2)),
@@ -36,7 +37,7 @@ CREATE TABLE torneo (
 );
 
 CREATE TABLE equipo (
-    id_equipo   SERIAL       PRIMARY KEY,
+    id_equipo   INT AUTO_INCREMENT       PRIMARY KEY,
     nombre      VARCHAR(100) NOT NULL,
     id_torneo   INTEGER      NOT NULL,
     id_facultad INTEGER      NOT NULL,
@@ -65,13 +66,15 @@ ALTER TABLE equipo
     ADD FOREIGN KEY (id_equipo, ci_capitan)
     REFERENCES equipo_jugador_torneo (id_equipo, ci_jugador);
 
+-- Listo en backend
 CREATE TABLE complejo (
-    id_complejo  SERIAL       PRIMARY KEY,
+    id_complejo  INT AUTO_INCREMENT       PRIMARY KEY,
     nombre       VARCHAR(150) NOT NULL,
     direccion    VARCHAR(255) NOT NULL,
     departamento VARCHAR(100) NOT NULL
 );
 
+-- Listo en backend
 CREATE TABLE cancha (
     nombre_cancha VARCHAR(100) NOT NULL,
     id_complejo   INTEGER      NOT NULL,
@@ -82,14 +85,14 @@ CREATE TABLE cancha (
 );
 
 CREATE TABLE turno (
-    id_turno    SERIAL PRIMARY KEY,
+    id_turno    INT AUTO_INCREMENT PRIMARY KEY,
     hora_inicio TIME   NOT NULL,
     hora_fin    TIME   NOT NULL,
     CHECK (hora_fin > hora_inicio)
 );
 
 CREATE TABLE partido (
-    id_partido          SERIAL       PRIMARY KEY,
+    id_partido          INT AUTO_INCREMENT       PRIMARY KEY,
     id_torneo           INTEGER      NOT NULL,
     numero_fecha        INTEGER      NOT NULL CHECK (numero_fecha > 0),
     id_equipo_local     INTEGER      NOT NULL,
@@ -122,7 +125,7 @@ CREATE TABLE planilla_partido (
 );
 
 CREATE TABLE gol (
-    id_gol     SERIAL   PRIMARY KEY,
+    id_gol     INT AUTO_INCREMENT   PRIMARY KEY,
     id_partido INTEGER  NOT NULL,
     ci_jugador INTEGER  NOT NULL,
     minuto     INTEGER  NOT NULL CHECK (minuto BETWEEN 0 AND 130),
@@ -132,7 +135,7 @@ CREATE TABLE gol (
 );
 
 CREATE TABLE tarjeta (
-    id_tarjeta SERIAL      PRIMARY KEY,
+    id_tarjeta INT AUTO_INCREMENT      PRIMARY KEY,
     id_partido INTEGER     NOT NULL,
     ci_jugador INTEGER     NOT NULL,
     minuto     INTEGER     NOT NULL CHECK (minuto BETWEEN 0 AND 130),
@@ -141,7 +144,7 @@ CREATE TABLE tarjeta (
 );
 
 CREATE TABLE sancion_jugador (
-    id_sancion          SERIAL      PRIMARY KEY,
+    id_sancion          INT AUTO_INCREMENT      PRIMARY KEY,
     ci_jugador          INTEGER     NOT NULL,
     id_torneo           INTEGER     NOT NULL,
     motivo              VARCHAR(30) NOT NULL

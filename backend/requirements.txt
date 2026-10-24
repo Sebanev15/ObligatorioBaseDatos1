@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+PyMySQL
+cryptography
+DBUtils
+PyJWT
+bcrypt
+pydantic-settings
+python-multipart
