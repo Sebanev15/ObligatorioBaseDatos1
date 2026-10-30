@@ -5,7 +5,7 @@ from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from .db import fetch_one, get_connection
-from .routers import complejos, jugadores
+from .routers import complejos, jugadores, auth
 
 logger = logging.getLogger("torneo")
 
@@ -35,7 +35,7 @@ def health_db():
 # --- Routers: uno por entidad -----------------------------------------------------------
 api.include_router(jugadores.router)
 api.include_router(complejos.router)
-
+api.include_router(auth.router)
 app.include_router(api)
 
 
@@ -49,6 +49,7 @@ _ERRORES = {
     1048: (422, "Falta un dato obligatorio."),
     3819: (422, "Los datos no cumplen una restricción de validación."),
     1142: (403, "La base de datos rechazó la operación por falta de permisos."),
+    1265: (422, "Valor inválido para un campo con opciones fijas."),
 }
 _ERRORES_CONEXION = {1045, 2002, 2003, 2006, 2013}
 
