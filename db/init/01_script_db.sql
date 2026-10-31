@@ -10,6 +10,7 @@ CREATE TABLE facultad (
     nombre      VARCHAR(150) NOT NULL UNIQUE
 );
 
+-- Listo en backend
 CREATE TABLE jugador (
     ci               INTEGER      PRIMARY KEY,
     nombre           VARCHAR(100) NOT NULL,
@@ -65,6 +66,7 @@ ALTER TABLE equipo
     ADD FOREIGN KEY (id_equipo, ci_capitan)
     REFERENCES equipo_jugador_torneo (id_equipo, ci_jugador);
 
+-- Listo en backend
 CREATE TABLE complejo (
     id_complejo  INT AUTO_INCREMENT       PRIMARY KEY,
     nombre       VARCHAR(150) NOT NULL,
@@ -72,6 +74,7 @@ CREATE TABLE complejo (
     departamento VARCHAR(100) NOT NULL
 );
 
+-- Listo en backend
 CREATE TABLE cancha (
     nombre_cancha VARCHAR(100) NOT NULL,
     id_complejo   INTEGER      NOT NULL,
