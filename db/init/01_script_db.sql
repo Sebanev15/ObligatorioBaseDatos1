@@ -4,7 +4,7 @@ CREATE TABLE login (
     contrasena VARCHAR(255) NOT NULL,
     rol        VARCHAR(20)  NOT NULL CHECK (rol IN ('administrador', 'planillero'))
 );
-
+-- Listo en backend
 CREATE TABLE facultad (
     id_facultad INT AUTO_INCREMENT       PRIMARY KEY,
     nombre      VARCHAR(150) NOT NULL UNIQUE
@@ -23,7 +23,7 @@ CREATE TABLE jugador (
     CHECK (tipo IN ('grado', 'posgrado', 'docente', 'funcionario')),
     FOREIGN KEY (id_facultad) REFERENCES facultad (id_facultad)
 );
-
+-- Listo en backend
 CREATE TABLE torneo (
     id_torneo    INT AUTO_INCREMENT       PRIMARY KEY,
     nombre       VARCHAR(150) NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE torneo (
     CHECK (estado IN ('inscripcion', 'en curso', 'finalizado')),
     CHECK (fecha_fin >= fecha_inicio)
 );
-
+--Listo en backend
 CREATE TABLE equipo (
     id_equipo   INT AUTO_INCREMENT       PRIMARY KEY,
     nombre      VARCHAR(100) NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE equipo (
     UNIQUE (nombre, id_torneo),
     UNIQUE (id_equipo, id_torneo)        -- para poder referenciarla desde otras tablas
 );
-
+--Listo en backend
 CREATE TABLE equipo_jugador_torneo (
     id_equipo       INTEGER  NOT NULL,
     ci_jugador      INTEGER  NOT NULL,
@@ -84,6 +84,7 @@ CREATE TABLE cancha (
     FOREIGN KEY (id_complejo) REFERENCES complejo (id_complejo)
 );
 
+-- Listo en backend
 CREATE TABLE turno (
     id_turno    INT AUTO_INCREMENT PRIMARY KEY,
     hora_inicio TIME   NOT NULL,
@@ -143,6 +144,7 @@ CREATE TABLE tarjeta (
     FOREIGN KEY (id_partido, ci_jugador) REFERENCES planilla_partido (id_partido, ci_jugador)
 );
 
+-- Listo en backend
 CREATE TABLE sancion_jugador (
     id_sancion          INT AUTO_INCREMENT      PRIMARY KEY,
     ci_jugador          INTEGER     NOT NULL,
