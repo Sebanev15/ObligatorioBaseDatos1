@@ -7,3 +7,5 @@ PyJWT
 bcrypt
 pydantic-settings
 python-multipart
+bcrypt
+pyjwt
