@@ -11,3 +11,8 @@ Docs: `http://localhost:8000/api/docs`
 #### Abrir frontend
 
 `http://localhost:5173/`
+
+
+#### desarrollo → http://localhost:5173
+`docker compose --profile dev up  `          
+`docker compose --profile prod up --build `
