@@ -56,7 +56,7 @@ Convención de nombres: **routers en plural** (`jugadores.py`), **schemas en sin
 ### 3. El camino de una petición
 
 ```
-Cliente (React / Swagger / curl)
+Cliente (Swagger / curl)
    │   PATCH /api/jugadores/1234567     {"tipo": "docente"}
    ▼
 main.py        el prefijo /api viene de main.py, el /jugadores del router
@@ -72,7 +72,7 @@ db.py          get_connection(user.rol): toma una conexión del pool del usuario
    ▼
 SQL            UPDATE jugador SET tipo = %s WHERE ci = %s      (valores siempre parametrizados)
    ▼
-MySQL          aplica constraints (UNIQUE, FK, CHECK) y triggers (reglas del torneo)
+MySQL          aplica constraints (UNIQUE, FK, CHECK)
    │                                       └─ si rechaza ──► main.py lo traduce a 409 / 422 / 403
    ▼
 Commit         automático al salir del bloque `with get_connection(...)`
@@ -136,7 +136,7 @@ Herramientas que se usan:
 - `Literal["grado", "posgrado", ...]` para los enums. **Los valores tienen que ser idénticos a los del `CHECK` de la base** (ojo: `'en curso'` del torneo lleva espacio, y el motivo de sanción es `'acumulacion de amarillas'`).
 - `model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")`: recorta espacios y **rechaza campos que no estén declarados**. Este `extra="forbid"` es importante para la seguridad del PATCH (ver reglas de oro).
 - Validaciones propias con `@field_validator` (ver la fecha de nacimiento en `schemas/jugador.py`).
-  La validación se repite en las tres capas que pide el enunciado: frontend, Pydantic y la base (`CHECK`, `UNIQUE`, FK, triggers).
+  La validación se realiza en Pydantic, en las reglas de negocio del backend y en la base (`CHECK`, `UNIQUE`, FK).
 
 #### 4.4 Cómo llegan los errores de MySQL al cliente
 
@@ -149,7 +149,6 @@ Herramientas que se usan:
 | 1452 | **422** | Referencia a algo que no existe (FK al insertar) |
 | 1048 | **422** | Falta un dato `NOT NULL` |
 | 3819 | **422** | No cumple un `CHECK` |
-| **1644** | **422** | **Un trigger rechazó la operación** (`SIGNAL`): el mensaje del trigger llega tal cual al cliente |
 | 1142 | **403** | El usuario de MySQL del rol no tiene permiso (falta un `GRANT`) |
 | 2003, 1045, ... | **503** | La base no está disponible o las credenciales no coinciden |
 | otro | **500** | Error no previsto (mirar `docker compose logs backend`) |
@@ -163,7 +162,7 @@ Herramientas que se usan:
 3. **Creá `routers/<entidad>s.py`** copiando el molde de la sección 6. Cambiá la tabla, las columnas y los mensajes.
 4. **Registralo en `main.py`**: sumá el módulo al `import` y una línea `api.include_router(<entidad>s.router)`.
 5. **Reconstruí y probá** (ver sección 8). La entidad aparece sola en `http://localhost:8000/api/docs`.
-6. **Si tiene reglas de negocio**, implementalas como trigger en la base (sección 7) y probá que el mensaje llegue bien.
+6. **Si tiene reglas de negocio**, implementalas en el backend y probá sus casos válidos e inválidos.
 7. **Si el planillero tiene que escribir en esa tabla**, agregá el `GRANT` correspondiente en `db/init/02_users.sh`. Sin eso, MySQL rechaza la operación con un 403.
 8. Probá con `docker compose down -v && docker compose up --build` desde cero, y hacé el commit.
 #### Qué usar según el caso
@@ -339,32 +338,21 @@ Si un reporte necesita un filtro (por ejemplo el torneo), se recibe como paráme
  
 ---
 
-### 7. Reglas del torneo: se implementan en la base
+### 7. Reglas del torneo: se validan en el backend
 
-Reglas como "plantel de máximo 10 jugadores", "un equipo juega una sola vez por fecha" o "no se puede anotar a un suspendido" se implementan como **triggers** en MySQL, no en Python. Así valen sin importar desde dónde se escriba en la base. El backend solo se limita a mostrar el mensaje al usuario.
+Las reglas de negocio se comprueban en las operaciones de los routers antes de escribir en MySQL. Por ejemplo, `routers/equipos.py` valida la facultad del jugador, que no integre otro equipo del torneo, el máximo de integrantes, el límite de docentes/funcionarios, la camiseta y el estado de inscripción. Los cambios se hacen dentro de una transacción y el equipo se bloquea mientras se modifica el plantel, para evitar que dos operaciones simultáneas superen los límites.
 
-Los triggers van en `db/init/04_triggers.sql`, **después** del script de datos de prueba. Si estuvieran antes, el seed los dispararía mientras inserta jugador por jugador y fallaría.
+Los constraints de la base (`CHECK`, `UNIQUE`, FK y `NOT NULL`) siguen siendo una defensa adicional para la integridad de los datos; no se usan triggers para reglas de negocio. Las reglas sobre partidos, tarjetas o suspensiones se deben validar en el backend cuando existan las operaciones de carga correspondientes.
 
-```sql
-DELIMITER //
-CREATE TRIGGER trg_plantel_maximo
-BEFORE INSERT ON equipo_jugador_torneo
-FOR EACH ROW
-BEGIN
-  IF (SELECT COUNT(*) FROM equipo_jugador_torneo WHERE id_equipo = NEW.id_equipo) >= 10 THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El plantel ya tiene 10 jugadores';
-  END IF;
-END//
-DELIMITER ;
-```
+### 8. Eliminaciones y datos dependientes
 
-Cuando el trigger ejecuta `SIGNAL`, MySQL devuelve el error 1644 y `main.py` lo transforma en una respuesta **422** con el `MESSAGE_TEXT` como `detail`: `{"detail": "El plantel ya tiene 10 jugadores"}`. El frontend solo tiene que mostrar ese texto. Escribí los mensajes pensando en que los lee una persona.
+Las eliminaciones en cascada se limitan a datos sin historia: los fixtures que no se jugaron y sus planillas/eventos. Borrar un equipo, torneo, cancha o complejo devuelve **409** si afectaría partidos jugados; así no se eliminan resultados. Un equipo con jugadores sancionados tampoco se elimina, y no se puede desinscribir a un jugador sancionado del torneo: el esquema registra la sanción por jugador y edición, por lo que conservar la relación permite atribuirla al equipo correcto. Borrar un jugador devuelve **409** si figura en un partido jugado o tiene sanciones; si no, elimina sus inscripciones y datos de partidos no jugados, pero conserva los equipos. Un torneo con sanciones también devuelve **409**. Una facultad con jugadores o equipos asociados no se puede borrar (409), evitando borrar sus entidades dependientes. Las operaciones son transaccionales.
 
-Nota: reglas de tipo "mínimo" (por ejemplo, "al menos 5 jugadores") no se pueden validar al insertar, porque el plantel se arma de a uno. Se validan en el momento que importa: al programar un partido.
- 
+Al actualizar una base existente, aplicar una vez `db/migrations/20261105_preserve_match_history.sql`. El esquema inicial ya refleja este cambio para bases nuevas.
+
 ---
 
-### 8. Cómo probar
+### 9. Cómo probar
 
 **Swagger** (lo más cómodo): abrí `http://localhost:8000/api/docs`, elegí un endpoint, **Try it out**, completá y **Execute**. Muestra la respuesta, el código HTTP y el `curl` equivalente.
 
@@ -385,6 +373,14 @@ curl -X DELETE http://localhost:8000/api/jugadores/1234567
 ```
 
 **Chequeos útiles:** `GET /api/health` (el backend está vivo) y `GET /api/health/db` (llega a MySQL con sus credenciales).
+
+**Pruebas unitarias del backend** (desde la raíz del repositorio):
+
+```bash
+python -m unittest discover -s backend/tests -t backend
+```
+
+Estas pruebas no se conectan a MySQL: simulan los helpers de persistencia y verifican las reglas de borrado y el registro de rutas. No validan la ejecución de las consultas SQL contra el servidor; eso requiere una base de prueba configurada.
 
 **Después de cambiar código del backend** hay que reconstruir la imagen, porque el código se copia dentro de ella:
 
@@ -407,7 +403,26 @@ y levantá con `docker compose -f docker-compose.yml -f docker-compose.dev.yml u
  
 ---
 
-### 9. Reglas de oro
+### 10. Reportes y métricas
+
+Los reportes de la edición se consultan con `GET /api/reportes/{id_torneo}/...`; el reporte de jugadores por facultad y tipo es global: `GET /api/reportes/jugadores-por-facultad-tipo`. Todos requieren autenticación de usuario. Los reportes de partidos consideran únicamente los encuentros jugados, salvo el resumen de estados y la consulta de jugadores que nunca figuraron en una planilla.
+
+| Ruta | Resultado |
+|---|---|
+| `GET /api/reportes/{id_torneo}/posiciones` | Partidos, resultados, goles y puntos (3 por victoria, 1 por empate); los autogoles se acreditan al rival. |
+| `GET /api/reportes/{id_torneo}/goleadores` | Los 10 jugadores con más goles propios. |
+| `GET /api/reportes/{id_torneo}/fair-play` | 1 punto por amarilla y 3 por roja; menor puntaje es mejor. |
+| `GET /api/reportes/{id_torneo}/goles-por-fecha` | Promedio por fecha. |
+| `GET /api/reportes/{id_torneo}/uso-canchas-turnos` | Partidos jugados por cancha y turno. |
+| `GET /api/reportes/jugadores-por-facultad-tipo` | Cantidad de jugadores registrados por facultad y tipo. |
+| `GET /api/reportes/{id_torneo}/jugadores-sin-planilla` | Inscritos en plantel que nunca aparecen en una planilla de esa edición. |
+| `GET /api/reportes/{id_torneo}/sanciones-por-equipo-motivo` | Cantidad por equipo y motivo de sanción. |
+| `GET /api/reportes/{id_torneo}/estado-partidos` | Porcentajes de jugados, postergados y cancelados; excluye los programados. |
+| `GET /api/reportes/{id_torneo}/resultados-localia` | Victorias locales, empates y victorias visitantes. |
+| `GET /api/reportes/{id_torneo}/promedio-tarjetas-por-fecha` | Tarjetas promedio por partido en cada fecha. |
+| `GET /api/reportes/{id_torneo}/goles-por-facultad` | Goles acreditados a equipos por facultad, incluidos los autogoles recibidos. |
+
+### 11. Reglas de oro
 
 1. **Nunca armes SQL concatenando valores del usuario.** Los valores van siempre como parámetros (`%s`) y se pasan en la tupla:
 ```python

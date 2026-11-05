@@ -5,7 +5,7 @@ from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from .db import fetch_one, get_connection
-from .routers import complejos, jugadores, facultades, torneos, equipos, equipo_jugador_torneo,auth
+from .routers import complejos, jugadores, facultades, torneos, equipos, equipo_jugador_torneo, auth, reportes
 
 logger = logging.getLogger("torneo")
 
@@ -41,13 +41,13 @@ api.include_router(torneos.router)
 api.include_router(equipos.router)
 api.include_router(equipo_jugador_torneo.router)
 api.include_router(auth.router)
+api.include_router(reportes.router)
 
 app.include_router(api)
 
 
 # --- Errores de MySQL -> respuestas HTTP claras -----------------------------------------
-# El 1644 es el SIGNAL SQLSTATE '45000' de los triggers: el MESSAGE_TEXT del trigger le llega
-# tal cual al cliente. El resto son violaciones de constraints (UNIQUE, FK, NOT NULL, CHECK).
+# Las reglas de negocio se validan en los routers; aquí se traducen errores de constraints.
 _ERRORES = {
     1062: (409, "Ya existe un registro con esos datos."),
     1451: (409, "No se puede eliminar: hay registros que dependen de este."),
@@ -63,9 +63,6 @@ _ERRORES_CONEXION = {1045, 2002, 2003, 2006, 2013}
 @app.exception_handler(pymysql.MySQLError)
 async def mysql_error_handler(request: Request, exc: pymysql.MySQLError):
     codigo = exc.args[0] if exc.args and isinstance(exc.args[0], int) else None
-    if codigo == 1644:
-        mensaje = exc.args[1] if len(exc.args) > 1 else "Se violó una regla del torneo."
-        return JSONResponse(status_code=422, content={"detail": mensaje})
     if codigo in _ERRORES:
         status_http, mensaje = _ERRORES[codigo]
         return JSONResponse(status_code=status_http, content={"detail": mensaje})

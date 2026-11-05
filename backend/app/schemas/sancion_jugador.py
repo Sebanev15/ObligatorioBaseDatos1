@@ -13,8 +13,7 @@ CantidadFechas = Annotated[int, Field(ge=1, le=20)]
 
 
 class SancionCreate(BaseModel):
-    """Por la API solo se crean sanciones disciplinarias (por eso no se envía el motivo).
-    Las de tarjeta roja y de 3 amarillas las genera el sistema automáticamente."""
+    """Por esta API solo se crean sanciones disciplinarias; el motivo no se envía."""
     model_config = _CONFIG
 
     ci_jugador: CI

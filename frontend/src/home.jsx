@@ -3,19 +3,38 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { apiFetch } from "./api";
 
 const sections = [
-  { path: "/", label: "Resumen", symbol: "⌂", end: true },
-  { path: "/torneos", label: "Torneos", symbol: "🏆" },
-  { path: "/equipos", label: "Equipos", symbol: "⚽" },
-  { path: "/jugadores", label: "Jugadores", symbol: "♙" },
-  { path: "/facultades", label: "Facultades", symbol: "⌂" },
-  { path: "/complejos", label: "Complejos", symbol: "▦" },
+  { path: "/", label: "Resumen", icon: "overview", end: true },
+  { path: "/torneos", label: "Torneos", icon: "tournament" },
+  { path: "/equipos", label: "Equipos", icon: "team" },
+  { path: "/jugadores", label: "Jugadores", icon: "player" },
+  { path: "/facultades", label: "Facultades", icon: "faculty" },
+  { path: "/complejos", label: "Complejos", icon: "venue" },
+  { path: "/reportes", label: "Reportes", icon: "reports" },
 ];
+
+const iconPaths = {
+  overview: <><path d="m3 10 9-7 9 7" /><path d="M5 9v11h14V9M9 20v-6h6v6" /></>,
+  tournament: <><path d="M8 21h8m-4-4v4" /><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" /><path d="M7 6H4v2a4 4 0 0 0 4 4m9-6h3v2a4 4 0 0 1-4 4" /></>,
+  team: <><circle cx="12" cy="12" r="9" /><path d="m12 7 3 2v4l-3 2-3-2V9l3-2Zm0 0v8m-3-6 6 4m0-4-6 4" /></>,
+  player: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
+  faculty: <><path d="m3 9 9-5 9 5-9 5-9-5Z" /><path d="M6 11v5c3 3 9 3 12 0v-5m3-2v7" /></>,
+  venue: <><path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6" /><path d="M9 10h.01M15 10h.01" /></>,
+  reports: <><path d="M4 19V5m0 14h17" /><path d="m7 15 4-4 3 2 6-7" /><path d="M16 6h4v4" /></>,
+};
+
+function SectionIcon({ name, className = "size-5" }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {iconPaths[name]}
+    </svg>
+  );
+}
 
 function Sidebar() {
   return (
     <div className="flex h-full flex-col bg-base-100 p-5">
       <NavLink to="/" className="mb-9 flex items-center gap-3 px-1">
-        <span className="grid size-11 place-items-center rounded-2xl bg-[#248C7E] text-xl text-white">⚽</span>
+        <span className="grid size-11 place-items-center rounded-2xl bg-[#248C7E] text-xs font-bold tracking-wide text-white">TF5</span>
         <span className="leading-tight">
           <span className="block text-sm font-bold text-base-content">Fútbol 5</span>
           <span className="text-xs text-base-content/55">Interfacultades</span>
@@ -38,7 +57,7 @@ function Sidebar() {
               }`
             }
           >
-            <span className="grid size-5 place-items-center" aria-hidden="true">{section.symbol}</span>
+            <SectionIcon name={section.icon} />
             {section.label}
           </NavLink>
         ))}
@@ -71,7 +90,9 @@ export default function Home() {
           <header className="sticky top-0 z-20 flex h-[4.5rem] items-center justify-between border-b border-base-200 bg-base-100/95 px-4 backdrop-blur sm:px-7">
             <div className="flex items-center gap-3">
               <label htmlFor="dashboard-drawer" className="btn btn-ghost btn-square btn-sm lg:hidden" aria-label="Abrir menú">
-                ☰
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
               </label>
               <div>
                 <p className="text-xs text-base-content/50">Panel de gestión</p>
@@ -99,7 +120,9 @@ export default function Home() {
 function SummaryCard({ title, count, symbol, path, caption }) {
   return (
     <NavLink to={path} className="rounded-2xl border border-base-200 bg-base-100 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-6">
-      <span className="grid size-11 place-items-center rounded-xl bg-[#248C7E]/10 text-xl text-[#248C7E]" aria-hidden="true">{symbol}</span>
+      <span className="grid size-11 place-items-center rounded-xl bg-[#248C7E]/10 text-[#248C7E]">
+        <SectionIcon name={symbol} className="size-6" />
+      </span>
       <p className="mt-5 text-sm font-medium text-base-content/60">{title}</p>
       <p className="mt-1 text-3xl font-semibold tracking-tight text-base-content">
         {count === null ? <span className="loading loading-dots loading-sm" /> : count}
@@ -147,10 +170,10 @@ export function Dashboard() {
       </div>
       {error && <div role="alert" className="alert alert-error mb-6"><span>{error}</span></div>}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard title="Torneos" count={counts?.torneos ?? null} symbol="🏆" path="/torneos" caption="Competencias registradas" />
-        <SummaryCard title="Equipos" count={counts?.equipos ?? null} symbol="⚽" path="/equipos" caption="Inscritos en los torneos" />
-        <SummaryCard title="Jugadores" count={counts?.jugadores ?? null} symbol="♙" path="/jugadores" caption="Jugadores registrados" />
-        <SummaryCard title="Facultades" count={counts?.facultades ?? null} symbol="⌂" path="/facultades" caption="Participantes registradas" />
+        <SummaryCard title="Torneos" count={counts?.torneos ?? null} symbol="tournament" path="/torneos" caption="Competencias registradas" />
+        <SummaryCard title="Equipos" count={counts?.equipos ?? null} symbol="team" path="/equipos" caption="Inscritos en los torneos" />
+        <SummaryCard title="Jugadores" count={counts?.jugadores ?? null} symbol="player" path="/jugadores" caption="Jugadores registrados" />
+        <SummaryCard title="Facultades" count={counts?.facultades ?? null} symbol="faculty" path="/facultades" caption="Participantes registradas" />
       </div>
       <div className="mt-7 rounded-2xl border border-base-200 bg-base-100 p-6 shadow-sm sm:p-7">
         <h2 className="!mb-2 !text-lg !font-semibold text-base-content">Torneo Interfacultades de Fútbol 5</h2>

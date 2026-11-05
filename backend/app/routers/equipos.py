@@ -9,6 +9,7 @@ from ..schemas.equipo import (
     CamisetaPatch, EquipoCreate, EquipoOut, EquipoPatch, JugadorPlantelOut,
     JugadorPlantelIn,
 )
+from ._deletion import eliminar_equipo, eliminar_participacion
 
 router = APIRouter(prefix="/equipos", tags=["equipos"])
 
@@ -92,9 +93,7 @@ def _camiseta_ocupada(conn, id_equipo: int, camiseta: int) -> int | None:
 # ------------------------------------------------------- reglas del plantel (una sola vez)
 def _agregar_jugador(conn, equipo: dict, ci: int, camiseta: int) -> None:
     """Valida las reglas del enunciado e inscribe al jugador. La usan 'crear equipo' y
-    'agregar jugador', así las reglas viven en un solo lugar.
-
-    Hoy estas reglas se controlan solo acá; el siguiente paso es reforzarlas con triggers."""
+    'agregar jugador', así las reglas viven en un solo lugar."""
     jugador = fetch_one(conn, "SELECT ci, nombre, apellido, id_facultad, tipo FROM jugador WHERE ci = %s", (ci,))
     if jugador is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"No existe un jugador con CI {ci}")
@@ -235,15 +234,8 @@ def modificar(id_equipo: IdEquipo, data: EquipoPatch, user: AdminUser):
 @router.delete("/{id_equipo}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar(id_equipo: IdEquipo, user: AdminUser):
     with get_connection(user.rol) as conn:
-        equipo = _equipo_bloqueado(conn, id_equipo)
-        _exigir_inscripcion(conn, equipo["id_torneo"])
-
-        # El orden importa: el equipo referencia a su capitán en el plantel y el plantel
-        # referencia al equipo. Si tiene partidos, el último DELETE falla (1451 -> 409) y la
-        # transacción deshace también los dos anteriores.
-        execute(conn, "UPDATE equipo SET ci_capitan = NULL WHERE id_equipo = %s", (id_equipo,))
-        execute(conn, "DELETE FROM equipo_jugador_torneo WHERE id_equipo = %s", (id_equipo,))
-        execute(conn, "DELETE FROM equipo WHERE id_equipo = %s", (id_equipo,))
+        _equipo_bloqueado(conn, id_equipo)
+        eliminar_equipo(conn, id_equipo)
 
 
 # ================================================================================ PLANTEL
@@ -290,12 +282,15 @@ def quitar_jugador(id_equipo: IdEquipo, ci: CIPath, user: AdminUser):
     with get_connection(user.rol) as conn:
         equipo = _equipo_bloqueado(conn, id_equipo)
         _exigir_inscripcion(conn, equipo["id_torneo"])
-        if equipo["ci_capitan"] == ci:
-            raise HTTPException(
-                status.HTTP_409_CONFLICT, "Es el capitán del equipo: primero hay que asignar otro capitán"
-            )
-        res = execute(
-            conn, "DELETE FROM equipo_jugador_torneo WHERE id_equipo = %s AND ci_jugador = %s", (id_equipo, ci)
+        if _plantel_de(conn, id_equipo, ci) is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "El jugador no integra este equipo")
+
+        eliminar_participacion(conn, id_equipo, ci)
+        execute(
+            conn,
+            "UPDATE equipo SET ci_capitan = NULL WHERE id_equipo = %s AND ci_capitan = %s",
+            (id_equipo, ci),
         )
+        res = execute(conn, "DELETE FROM equipo_jugador_torneo WHERE id_equipo = %s AND ci_jugador = %s", (id_equipo, ci))
         if res.rowcount == 0:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "El jugador no integra este equipo")

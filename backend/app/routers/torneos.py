@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Path, Query, status
 from ..db import execute, fetch_all, fetch_one, get_connection
 from ..deps import AdminUser, AnyUser
 from ..schemas.torneo import TorneoCreate, TorneoOut, TorneoPatch
+from ._deletion import eliminar_equipo, eliminar_partidos_de_torneo
 
 router = APIRouter(prefix="/torneos", tags=["torneos"])
 
@@ -156,8 +157,14 @@ def eliminar(id_torneo: IdTorneo, user: AdminUser):
         if _obtener(conn, id_torneo) is None:
             raise _no_encontrado()
 
-        execute(
-            conn,
-            "DELETE FROM torneo WHERE id_torneo = %s",
-            (id_torneo,),
-        )
+        if fetch_one(conn, "SELECT id_sancion FROM sancion_jugador WHERE id_torneo = %s LIMIT 1", (id_torneo,)):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "No se puede eliminar el torneo mientras tenga sanciones registradas.",
+            )
+
+        eliminar_partidos_de_torneo(conn, id_torneo)
+        equipos = fetch_all(conn, "SELECT id_equipo FROM equipo WHERE id_torneo = %s", (id_torneo,))
+        for equipo in equipos:
+            eliminar_equipo(conn, equipo["id_equipo"])
+        execute(conn, "DELETE FROM torneo WHERE id_torneo = %s", (id_torneo,))

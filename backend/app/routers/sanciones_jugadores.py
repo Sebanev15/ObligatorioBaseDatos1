@@ -1,9 +1,4 @@
-"""ABM de sanciones a jugadores.
-
-- Las sanciones por tarjeta roja y por acumulación de 3 amarillas las genera el sistema
-  (trigger), no se crean por la API.
-- La organización puede aplicar sanciones disciplinarias de varias fechas: eso es lo que crea el POST.
-"""
+"""ABM de sanciones disciplinarias a jugadores."""
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Path, Query, status

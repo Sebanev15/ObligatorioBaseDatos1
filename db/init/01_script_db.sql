@@ -120,9 +120,9 @@ CREATE TABLE planilla_partido (
     ci_jugador INTEGER NOT NULL,
     id_equipo  INTEGER NOT NULL,
     PRIMARY KEY (id_partido, ci_jugador),
-    FOREIGN KEY (id_partido) REFERENCES partido (id_partido),
-    -- el jugador debe estar inscripto en ese equipo
-    FOREIGN KEY (id_equipo, ci_jugador) REFERENCES equipo_jugador_torneo (id_equipo, ci_jugador)
+    FOREIGN KEY (id_partido) REFERENCES partido (id_partido)
+    -- Se conserva como dato histórico aunque se elimine al jugador de la plantilla.
+    -- Al cargar la planilla, el backend valida la inscripción en equipo_jugador_torneo.
 );
 
 CREATE TABLE gol (

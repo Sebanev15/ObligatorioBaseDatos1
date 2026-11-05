@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Path, Query, status
 from ..db import execute, fetch_all, fetch_one, get_connection
 from ..deps import AdminUser, AnyUser
 from ..schemas.jugador import JugadorCreate, JugadorOut, JugadorPatch, TipoJugador
+from ._deletion import eliminar_jugador
 
 router = APIRouter(prefix="/jugadores", tags=["jugadores"])
 
@@ -99,6 +100,6 @@ def modificar(ci: CI, data: JugadorPatch, user: AdminUser):
 @router.delete("/{ci}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar(ci: CI, user: AdminUser):
     with get_connection(user.rol) as conn:
-        res = execute(conn, "DELETE FROM jugador WHERE ci = %s", (ci,))
-    if res.rowcount == 0:
-        raise _no_encontrado()
+        if fetch_one(conn, "SELECT ci FROM jugador WHERE ci = %s", (ci,)) is None:
+            raise _no_encontrado()
+        eliminar_jugador(conn, ci)

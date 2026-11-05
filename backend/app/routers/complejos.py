@@ -9,6 +9,7 @@ from ..schemas.complejo import (
     CanchaCreate, CanchaOut, CanchaPatch,
     ComplejoCreate, ComplejoOut, ComplejoPatch, Departamento,
 )
+from ._deletion import eliminar_partidos_de_cancha, eliminar_partidos_de_complejo
 
 router = APIRouter(prefix="/complejos", tags=["complejos"])
 
@@ -88,8 +89,11 @@ def modificar(id_complejo: IdComplejo, data: ComplejoPatch, user: AdminUser):
 
 @router.delete("/{id_complejo}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar(id_complejo: IdComplejo, user: AdminUser):
-    # Si tiene canchas, MySQL rechaza el DELETE (error 1451) y main.py lo devuelve como 409.
     with get_connection(user.rol) as conn:
+        if _complejo(conn, id_complejo) is None:
+            raise _complejo_no_encontrado()
+        eliminar_partidos_de_complejo(conn, id_complejo)
+        execute(conn, "DELETE FROM cancha WHERE id_complejo = %s", (id_complejo,))
         res = execute(conn, "DELETE FROM complejo WHERE id_complejo = %s", (id_complejo,))
     if res.rowcount == 0:
         raise _complejo_no_encontrado()
@@ -149,6 +153,9 @@ def modificar_cancha(id_complejo: IdComplejo, nombre_cancha: NombreCancha,
                status_code=status.HTTP_204_NO_CONTENT, tags=["canchas"])
 def eliminar_cancha(id_complejo: IdComplejo, nombre_cancha: NombreCancha, user: AdminUser):
     with get_connection(user.rol) as conn:
+        if _cancha(conn, id_complejo, nombre_cancha) is None:
+            raise _cancha_no_encontrada()
+        eliminar_partidos_de_cancha(conn, id_complejo, nombre_cancha)
         res = execute(
             conn, "DELETE FROM cancha WHERE id_complejo = %s AND nombre_cancha = %s",
             (id_complejo, nombre_cancha),
