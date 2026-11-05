@@ -29,7 +29,7 @@ export default function Login() {
         
         <div className="w-full md:w-1/2 bg-[#248C7E] flex flex-col items-center  p-8 text-primary">
           <h2 className="text-xl font-bold text-center !mt-[6%]">BIENVENIDO</h2>
-          <img className="mt-[19%]" src="../public/field.svg"></img>
+          <img className="mt-[19%]" src="/field.svg" alt="" />
         </div>
 
         
@@ -37,7 +37,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <h2 className=" !text-[#37313B] !mb-[8%] ">Iniciar Sesión</h2>
 
-            <label className="label font-medium">Email</label>
+            <label className="label font-medium">Correo electrónico</label>
             <input 
               type="email" 
               className="input input-bordered w-full"
@@ -47,7 +47,7 @@ export default function Login() {
               required
             />
 
-            <label className="label font-medium">Password</label>
+            <label className="label font-medium">Contraseña</label>
             <input 
               type="password" 
               className="input input-bordered w-full" 
