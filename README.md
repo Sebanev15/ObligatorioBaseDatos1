@@ -10,9 +10,11 @@ Docs: `http://localhost:8000/api/docs`
 
 #### Abrir frontend
 
-`http://localhost:5173/`
+`http://localhost:3000/`
 
 
-#### desarrollo → http://localhost:5173
-`docker compose --profile dev up  `          
-`docker compose --profile prod up --build `
+#### Desarrollo con recarga automática (opcional)
+
+`docker compose --profile dev up`
+
+En este modo el frontend se abre en `http://localhost:5173/`. Para el uso normal, alcanza con `docker compose up --build` y abrir `http://localhost:3000/`.

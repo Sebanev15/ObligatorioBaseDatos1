@@ -10,6 +10,8 @@ from ..schemas.equipo_jugador_torneo import (
     InscripcionOut,
     InscripcionPatch,
 )
+from ._deletion import eliminar_participacion
+from .equipos import _agregar_jugador, _equipo_bloqueado, _exigir_inscripcion
 
 router = APIRouter(
     prefix="/equipos/{id_equipo}/jugadores",
@@ -102,65 +104,9 @@ def inscribir(
     user: AdminUser,
 ):
     with get_connection(user.rol) as conn:
-        equipo = _equipo(conn, id_equipo)
-        if equipo is None:
-            raise _no_encontrado()
-
-        jugador = fetch_one(
-            conn,
-            "SELECT ci FROM jugador WHERE ci = %s",
-            (data.ci_jugador,),
-        )
-        if jugador is None:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND,
-                "Jugador no encontrado",
-            )
-
-        existente = fetch_one(
-            conn,
-            """
-                SELECT id_equipo
-                FROM equipo_jugador_torneo
-                WHERE ci_jugador = %s
-                  AND id_torneo = %s
-            """,
-            (data.ci_jugador, equipo["id_torneo"]),
-        )
-        if existente is not None:
-            raise _conflicto(
-                "El jugador ya está inscrito en un equipo de este torneo"
-            )
-
-        camiseta = fetch_one(
-            conn,
-            """
-                SELECT ci_jugador
-                FROM equipo_jugador_torneo
-                WHERE id_equipo = %s
-                  AND numero_camiseta = %s
-            """,
-            (id_equipo, data.numero_camiseta),
-        )
-        if camiseta is not None:
-            raise _conflicto(
-                "Ese número de camiseta ya está ocupado en el equipo"
-            )
-
-        execute(
-            conn,
-            """
-                INSERT INTO equipo_jugador_torneo
-                    (id_equipo, ci_jugador, id_torneo, numero_camiseta)
-                VALUES (%s, %s, %s, %s)
-            """,
-            (
-                id_equipo,
-                data.ci_jugador,
-                equipo["id_torneo"],
-                data.numero_camiseta,
-            ),
-        )
+        equipo = _equipo_bloqueado(conn, id_equipo)
+        _exigir_inscripcion(conn, equipo["id_torneo"])
+        _agregar_jugador(conn, equipo, data.ci_jugador, data.numero_camiseta)
 
         return _inscripcion(conn, id_equipo, data.ci_jugador)
 
@@ -181,8 +127,8 @@ def modificar(
         )
 
     with get_connection(user.rol) as conn:
-        if _equipo(conn, id_equipo) is None:
-            raise _no_encontrado()
+        equipo = _equipo_bloqueado(conn, id_equipo)
+        _exigir_inscripcion(conn, equipo["id_torneo"])
 
         fila = _inscripcion(conn, id_equipo, ci)
         if fila is None:
@@ -227,28 +173,19 @@ def desinscribir(
     user: AdminUser,
 ):
     with get_connection(user.rol) as conn:
-        equipo = _equipo(conn, id_equipo)
-        if equipo is None:
-            raise _no_encontrado()
+        equipo = _equipo_bloqueado(conn, id_equipo)
+        _exigir_inscripcion(conn, equipo["id_torneo"])
 
         fila = _inscripcion(conn, id_equipo, ci)
         if fila is None:
             raise _inscripcion_no_encontrada()
 
-        capitan = fetch_one(
+        eliminar_participacion(conn, id_equipo, ci)
+        execute(
             conn,
-            """
-                SELECT id_equipo
-                FROM equipo
-                WHERE id_equipo = %s AND ci_capitan = %s
-            """,
+            "UPDATE equipo SET ci_capitan = NULL WHERE id_equipo = %s AND ci_capitan = %s",
             (id_equipo, ci),
         )
-        if capitan is not None:
-            raise _conflicto(
-                "Debes asignar otro capitán o quitar el capitán "
-                "antes de desinscribir a este jugador"
-            )
 
         execute(
             conn,

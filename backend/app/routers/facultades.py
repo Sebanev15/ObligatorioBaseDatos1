@@ -5,7 +5,6 @@ from fastapi import APIRouter, HTTPException, Path, Query, status
 from ..db import execute, fetch_all, fetch_one, get_connection
 from ..deps import AdminUser, AnyUser
 from ..schemas.facultad import FacultadCreate, FacultadOut, FacultadPut
-
 router = APIRouter(prefix="/facultades", tags=["facultades"])
 
 IdFacultad = Annotated[int, Path(gt=0)]
@@ -74,10 +73,19 @@ def actualizar(id_facultad: IdFacultad, data: FacultadPut, user: AdminUser):
 @router.delete("/{id_facultad}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar(id_facultad: IdFacultad, user: AdminUser):
     with get_connection(user.rol) as conn:
-        fila = _obtener_por_id(conn, id)
+        fila = _obtener_por_id(conn, id_facultad)
         if fila is None:
             raise _no_encontrado()
-        execute(conn, f"DELETE FROM facultad WHERE id_facultad = %s", (id_facultad,))
+        if fetch_one(conn, "SELECT 1 AS x FROM equipo WHERE id_facultad = %s LIMIT 1", (id_facultad,)):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "No se puede eliminar la facultad mientras tenga equipos asociados.",
+            )
+        if fetch_one(conn, "SELECT 1 AS x FROM jugador WHERE id_facultad = %s LIMIT 1", (id_facultad,)):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "No se puede eliminar la facultad mientras tenga jugadores asociados.",
+            )
 
-
+        execute(conn, "DELETE FROM facultad WHERE id_facultad = %s", (id_facultad,))
 
