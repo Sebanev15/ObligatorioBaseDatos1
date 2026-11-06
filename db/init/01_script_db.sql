@@ -152,7 +152,3 @@ CREATE TABLE sancion_jugador (
     FOREIGN KEY (id_torneo)  REFERENCES torneo (id_torneo)
 );
 
--- Orden recomendado para cargar un equipo:
---   1) INSERT en equipo (ci_capitan NULL)
---   2) INSERT en equipo_jugador_torneo
---   3) UPDATE equipo SET ci_capitan = ... WHERE id_equipo = ...

@@ -132,7 +132,6 @@ def crear_cancha(id_complejo: IdComplejo, data: CanchaCreate, user: AdminUser):
 @router.patch("/{id_complejo}/canchas/{nombre_cancha}", response_model=CanchaOut, tags=["canchas"])
 def modificar_cancha(id_complejo: IdComplejo, nombre_cancha: NombreCancha,
                      data: CanchaPatch, user: AdminUser):
-    # OJO: techada=False es un valor válido; por eso se filtra "is not None" y no "if v".
     cambios = {k: v for k, v in data.model_dump(exclude_unset=True).items() if v is not None}
     if not cambios:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No se envió ningún campo para modificar")
