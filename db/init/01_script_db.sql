@@ -19,7 +19,7 @@ CREATE TABLE jugador (
     fecha_nacimiento DATE         NOT NULL,
     id_facultad      INTEGER      NOT NULL,
     tipo             VARCHAR(20)  NOT NULL
-                    
+
     CHECK (tipo IN ('grado', 'posgrado', 'docente', 'funcionario')),
     FOREIGN KEY (id_facultad) REFERENCES facultad (id_facultad)
 );
@@ -35,7 +35,7 @@ CREATE TABLE torneo (
     CHECK (estado IN ('inscripcion', 'en curso', 'finalizado')),
     CHECK (fecha_fin >= fecha_inicio)
 );
---Listo en backend
+-- Listo en backend
 CREATE TABLE equipo (
     id_equipo   INT AUTO_INCREMENT       PRIMARY KEY,
     nombre      VARCHAR(100) NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE equipo (
     UNIQUE (nombre, id_torneo),
     UNIQUE (id_equipo, id_torneo)        -- para poder referenciarla desde otras tablas
 );
---Listo en backend
+-- Listo en backend
 CREATE TABLE equipo_jugador_torneo (
     id_equipo       INTEGER  NOT NULL,
     ci_jugador      INTEGER  NOT NULL,
@@ -118,11 +118,11 @@ CREATE TABLE partido (
 CREATE TABLE planilla_partido (
     id_partido INTEGER NOT NULL,
     ci_jugador INTEGER NOT NULL,
-    id_equipo  INTEGER NOT NULL,
+    id_equipo INTEGER NOT NULL,
     PRIMARY KEY (id_partido, ci_jugador),
-    FOREIGN KEY (id_partido) REFERENCES partido (id_partido)
-    -- Se conserva como dato histórico aunque se elimine al jugador de la plantilla.
-    -- Al cargar la planilla, el backend valida la inscripción en equipo_jugador_torneo.
+    FOREIGN KEY (id_partido) REFERENCES partido(id_partido),
+    FOREIGN KEY (id_equipo) REFERENCES equipo(id_equipo),
+    FOREIGN KEY (ci_jugador) REFERENCES jugador(ci)
 );
 
 CREATE TABLE gol (

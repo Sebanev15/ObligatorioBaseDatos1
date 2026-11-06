@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException, Path, Query, status
 from ..db import execute, fetch_all, fetch_one, get_connection
 from ..deps import AdminUser, AnyUser
 from ..schemas.equipo import (
-    CamisetaPatch, EquipoCreate, EquipoOut, EquipoPatch, JugadorPlantelOut,
-    JugadorPlantelIn,
+    CamisetaPatch, EquipoCreate, EquipoOut, EquipoPatch, JugadorCandidatoOut,
+    JugadorPlantelOut, JugadorPlantelIn,
 )
 from ._deletion import eliminar_equipo, eliminar_participacion
 
@@ -213,21 +213,101 @@ def modificar(id_equipo: IdEquipo, data: EquipoPatch, user: AdminUser):
 
     with get_connection(user.rol) as conn:
         equipo = _equipo_bloqueado(conn, id_equipo)
+        id_torneo_nuevo = cambios.get("id_torneo", equipo["id_torneo"])
+        id_facultad_nueva = cambios.get("id_facultad", equipo["id_facultad"])
+        cambia_torneo = id_torneo_nuevo != equipo["id_torneo"]
 
-        if "nombre" in cambios:
+        if "id_torneo" in cambios or "id_facultad" in cambios:
+            _exigir_inscripcion(conn, equipo["id_torneo"])
+            _exigir_inscripcion(conn, id_torneo_nuevo)
+
+        if "id_facultad" in cambios and fetch_one(
+            conn,
+            "SELECT id_facultad FROM facultad WHERE id_facultad = %s",
+            (id_facultad_nueva,),
+        ) is None:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "La facultad indicada no existe")
+
+        plantel = fetch_all(
+            conn,
+            """SELECT ejt.ci_jugador, ejt.numero_camiseta, j.id_facultad
+               FROM equipo_jugador_torneo ejt
+               JOIN jugador j ON j.ci = ejt.ci_jugador
+               WHERE ejt.id_equipo = %s""",
+            (id_equipo,),
+        )
+        if any(jugador["id_facultad"] != id_facultad_nueva for jugador in plantel):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "No se puede cambiar la facultad: todos los jugadores del plantel deben pertenecer a ella",
+            )
+
+        if cambia_torneo:
+            partido = fetch_one(
+                conn,
+                """SELECT id_partido FROM partido
+                   WHERE id_equipo_local = %s OR id_equipo_visitante = %s
+                   LIMIT 1""",
+                (id_equipo, id_equipo),
+            )
+            if partido is not None:
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    "No se puede cambiar el torneo de un equipo que ya tiene partidos asignados",
+                )
+
+            for jugador in plantel:
+                ya_inscrito = fetch_one(
+                    conn,
+                    """SELECT id_equipo FROM equipo_jugador_torneo
+                       WHERE ci_jugador = %s AND id_torneo = %s""",
+                    (jugador["ci_jugador"], id_torneo_nuevo),
+                )
+                if ya_inscrito is not None:
+                    raise HTTPException(
+                        status.HTTP_409_CONFLICT,
+                        "No se puede cambiar el torneo: un jugador del plantel ya integra otro equipo en el torneo seleccionado",
+                    )
+
+        if "nombre" in cambios or cambia_torneo:
+            nombre_nuevo = cambios.get("nombre", equipo["nombre"])
             repetido = fetch_one(
                 conn,
                 "SELECT id_equipo FROM equipo WHERE nombre = %s AND id_torneo = %s",
-                (cambios["nombre"], equipo["id_torneo"]),
+                (nombre_nuevo, id_torneo_nuevo),
             )
             if repetido is not None and repetido["id_equipo"] != id_equipo:
-                raise HTTPException(status.HTTP_409_CONFLICT, f"Ya existe un equipo llamado {cambios['nombre']} en este torneo")
+                raise HTTPException(status.HTTP_409_CONFLICT, f"Ya existe un equipo llamado {nombre_nuevo} en este torneo")
 
         if "ci_capitan" in cambios and _plantel_de(conn, id_equipo, cambios["ci_capitan"]) is None:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "El capitán debe ser un jugador del plantel del equipo")
 
-        sets = ", ".join(f"{columna} = %s" for columna in cambios)  # columnas = campos del modelo
-        execute(conn, f"UPDATE equipo SET {sets} WHERE id_equipo = %s", (*cambios.values(), id_equipo))
+        if cambia_torneo:
+            execute(conn, "UPDATE equipo SET ci_capitan = NULL WHERE id_equipo = %s", (id_equipo,))
+            execute(conn, "DELETE FROM equipo_jugador_torneo WHERE id_equipo = %s", (id_equipo,))
+
+        cambios_equipo = {key: value for key, value in cambios.items() if not (cambia_torneo and key == "ci_capitan")}
+        if cambios_equipo:
+            sets = ", ".join(f"{columna} = %s" for columna in cambios_equipo)
+            execute(conn, f"UPDATE equipo SET {sets} WHERE id_equipo = %s", (*cambios_equipo.values(), id_equipo))
+
+        if cambia_torneo:
+            for jugador in plantel:
+                execute(
+                    conn,
+                    """INSERT INTO equipo_jugador_torneo
+                       (id_equipo, ci_jugador, id_torneo, numero_camiseta)
+                       VALUES (%s, %s, %s, %s)""",
+                    (id_equipo, jugador["ci_jugador"], id_torneo_nuevo, jugador["numero_camiseta"]),
+                )
+            ci_capitan_nuevo = cambios.get("ci_capitan", equipo["ci_capitan"])
+            if ci_capitan_nuevo is not None:
+                execute(
+                    conn,
+                    "UPDATE equipo SET ci_capitan = %s WHERE id_equipo = %s",
+                    (ci_capitan_nuevo, id_equipo),
+                )
+
         return _obtener(conn, id_equipo)
 
 
@@ -247,6 +327,75 @@ def listar_plantel(id_equipo: IdEquipo, user: AnyUser):
         return fetch_all(
             conn, _SELECT_PLANTEL + " WHERE ejt.id_equipo = %s ORDER BY ejt.numero_camiseta", (id_equipo,)
         )
+
+
+@router.get(
+    "/{id_equipo}/jugadores/candidatos",
+    response_model=list[JugadorCandidatoOut],
+    tags=["plantel"],
+)
+def listar_candidatos_plantel(id_equipo: IdEquipo, user: AdminUser):
+    with get_connection(user.rol) as conn:
+        equipo = fetch_one(
+            conn,
+            """
+                SELECT e.id_torneo, e.id_facultad, t.estado,
+                       (SELECT COUNT(*) FROM equipo_jugador_torneo ejt
+                        WHERE ejt.id_equipo = e.id_equipo) AS cantidad_jugadores,
+                       (SELECT COUNT(*)
+                        FROM equipo_jugador_torneo ejt
+                        JOIN jugador inscrito ON inscrito.ci = ejt.ci_jugador
+                        WHERE ejt.id_equipo = e.id_equipo
+                          AND inscrito.tipo IN ('docente', 'funcionario')) AS cantidad_docentes_funcionarios
+                FROM equipo e
+                JOIN torneo t ON t.id_torneo = e.id_torneo
+                WHERE e.id_equipo = %s
+            """,
+            (id_equipo,),
+        )
+        if equipo is None:
+            raise _equipo_no_encontrado()
+
+        candidatos = fetch_all(
+            conn,
+            """
+                SELECT j.ci, j.nombre, j.apellido, j.tipo,
+                       CASE
+                           WHEN %s <> 'inscripcion' THEN 0
+                           WHEN j.id_facultad <> %s THEN 0
+                           WHEN EXISTS (
+                               SELECT 1 FROM equipo_jugador_torneo inscr
+                               WHERE inscr.ci_jugador = j.ci AND inscr.id_torneo = %s
+                           ) THEN 0
+                           WHEN %s >= %s THEN 0
+                           WHEN j.tipo IN ('docente', 'funcionario') AND %s >= %s THEN 0
+                           ELSE 1
+                       END AS puede_agregar,
+                       CASE
+                           WHEN %s <> 'inscripcion' THEN 'El torneo no está en etapa de inscripción'
+                           WHEN j.id_facultad <> %s THEN 'No pertenece a la facultad del equipo'
+                           WHEN EXISTS (
+                               SELECT 1 FROM equipo_jugador_torneo inscr
+                               WHERE inscr.ci_jugador = j.ci AND inscr.id_torneo = %s
+                           ) THEN 'Ya integra un equipo de este torneo'
+                           WHEN %s >= %s THEN 'El plantel ya alcanzó el máximo de 10 jugadores'
+                           WHEN j.tipo IN ('docente', 'funcionario') AND %s >= %s
+                               THEN 'El plantel ya alcanzó el máximo de 2 docentes o funcionarios'
+                           ELSE NULL
+                       END AS motivo
+                FROM jugador j
+                ORDER BY j.apellido, j.nombre, j.ci
+            """,
+            (
+                equipo["estado"], equipo["id_facultad"], equipo["id_torneo"],
+                equipo["cantidad_jugadores"], MAX_PLANTEL,
+                equipo["cantidad_docentes_funcionarios"], MAX_DOCENTES_FUNCIONARIOS,
+                equipo["estado"], equipo["id_facultad"], equipo["id_torneo"],
+                equipo["cantidad_jugadores"], MAX_PLANTEL,
+                equipo["cantidad_docentes_funcionarios"], MAX_DOCENTES_FUNCIONARIOS,
+            ),
+        )
+        return candidatos
 
 
 @router.post("/{id_equipo}/jugadores", response_model=JugadorPlantelOut,

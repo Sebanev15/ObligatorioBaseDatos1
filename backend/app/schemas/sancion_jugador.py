@@ -30,6 +30,12 @@ class SancionPatch(BaseModel):
     cantidad_fechas: CantidadFechas | None = None
 
 
+class SancionJugadorCandidato(BaseModel):
+    ci: int
+    nombre: str
+    apellido: str
+
+
 class SancionOut(BaseModel):
     id_sancion: int
     ci_jugador: int

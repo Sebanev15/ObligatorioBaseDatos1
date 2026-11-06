@@ -75,7 +75,7 @@ def eliminar(id_facultad: IdFacultad, user: AdminUser):
     with get_connection(user.rol) as conn:
         fila = _obtener_por_id(conn, id_facultad)
         if fila is None:
-            raise _no_encontrado()
+            raise _no_encontrada()
         if fetch_one(conn, "SELECT 1 AS x FROM equipo WHERE id_facultad = %s LIMIT 1", (id_facultad,)):
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
@@ -88,4 +88,3 @@ def eliminar(id_facultad: IdFacultad, user: AdminUser):
             )
 
         execute(conn, "DELETE FROM facultad WHERE id_facultad = %s", (id_facultad,))
-

@@ -5,7 +5,13 @@ from fastapi import APIRouter, HTTPException, Path, Query, status
 
 from ..db import execute, fetch_all, fetch_one, get_connection
 from ..deps import AdminUser, AnyUser
-from ..schemas.sancion import MotivoSancion, SancionCreate, SancionOut, SancionPatch
+from ..schemas.sancion_jugador import (
+    MotivoSancion,
+    SancionCreate,
+    SancionJugadorCandidato,
+    SancionOut,
+    SancionPatch,
+)
 
 router = APIRouter(prefix="/sanciones", tags=["sanciones"])
 
@@ -57,6 +63,20 @@ def listar(
     sql = _SELECT + where + " ORDER BY s.id_torneo DESC, s.numero_fecha_inicio DESC, s.id_sancion DESC LIMIT %s OFFSET %s"
     with get_connection(user.rol) as conn:
         return fetch_all(conn, sql, (*params, limit, offset))
+
+
+@router.get("/candidatos", response_model=list[SancionJugadorCandidato])
+def listar_candidatos(user: AdminUser, id_torneo: int = Query(gt=0)):
+    with get_connection(user.rol) as conn:
+        return fetch_all(
+            conn,
+            """SELECT DISTINCT j.ci, j.nombre, j.apellido
+               FROM jugador j
+               JOIN equipo_jugador_torneo ejt ON ejt.ci_jugador = j.ci
+               WHERE ejt.id_torneo = %s
+               ORDER BY j.apellido, j.nombre, j.ci""",
+            (id_torneo,),
+        )
 
 
 @router.get("/{id_sancion}", response_model=SancionOut)
@@ -130,8 +150,13 @@ def modificar(id_sancion: IdSancion, data: SancionPatch, user: AdminUser):
 
 @router.delete("/{id_sancion}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar(id_sancion: IdSancion, user: AdminUser):
-    # Se puede eliminar cualquier sanción, incluidas las automáticas (por ejemplo, si se anuló una tarjeta).
     with get_connection(user.rol) as conn:
+        actual = _obtener(conn, id_sancion)
+        if actual is None:
+            raise _no_encontrada()
+        if actual["motivo"] != MOTIVO_MANUAL:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Las sanciones automáticas se corrigen modificando o eliminando la tarjeta que las originó.",
+            )
         res = execute(conn, "DELETE FROM sancion_jugador WHERE id_sancion = %s", (id_sancion,))
-    if res.rowcount == 0:
-        raise _no_encontrada()

@@ -33,6 +33,15 @@ class JugadorPlantelOut(BaseModel):
     es_capitan: bool
 
 
+class JugadorCandidatoOut(BaseModel):
+    ci: int
+    nombre: str
+    apellido: str
+    tipo: TipoJugador
+    puede_agregar: bool
+    motivo: str | None
+
+
 # ---- Equipo ---------------------------------------------------------------------------
 class EquipoCreate(BaseModel):
     """Se puede crear vacío y armar el plantel después, o mandar el plantel y el capitán de una vez
@@ -59,10 +68,12 @@ class EquipoCreate(BaseModel):
 
 
 class EquipoPatch(BaseModel):
-    """Solo nombre y capitán. La facultad y el torneo no se cambian: se borra y se crea de nuevo."""
+    """Permite editar datos del equipo mientras se preservan sus relaciones e historial."""
     model_config = _CONFIG
 
     nombre: str | None = Field(default=None, min_length=2, max_length=100)
+    id_torneo: int | None = Field(default=None, gt=0)
+    id_facultad: int | None = Field(default=None, gt=0)
     ci_capitan: CI | None = None
 
 

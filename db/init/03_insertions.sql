@@ -186,13 +186,13 @@ INSERT INTO partido (id_partido, id_torneo, numero_fecha, id_equipo_local, id_eq
 (15, 1, 5, 4, 5, '2026-10-31', 3, 'Cancha B', 2, 'cancelado');
 
 
--- Planilla de los partidos JUGADOS: se anota todo el plantel (8 jugadores)
--- de los dos equipos de cada partido.
+
 INSERT INTO planilla_partido (id_partido, ci_jugador, id_equipo)
 SELECT p.id_partido, ejt.ci_jugador, ejt.id_equipo
 FROM partido p
 JOIN equipo_jugador_torneo ejt
-  ON ejt.id_equipo IN (p.id_equipo_local, p.id_equipo_visitante)
+  ON ejt.id_torneo = p.id_torneo
+ AND ejt.id_equipo IN (p.id_equipo_local, p.id_equipo_visitante)
 WHERE p.estado = 'jugado';
 
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "./api";
+import './login.css'
 
 export default function Login() {
   const [correo, setCorreo] = useState("");
@@ -28,7 +29,7 @@ export default function Login() {
         
         
         <div className="w-full md:w-1/2 bg-[#248C7E] flex flex-col items-center  p-8 text-primary">
-          <h2 className="text-xl font-bold text-center !mt-[6%]">BIENVENIDO</h2>
+          <h2 className="text-xl font-bold text-center !mt-[6%]" id="tituloLogin">BIENVENIDO</h2>
           <img className="mt-[19%]" src="/field.svg" alt="" />
         </div>
 

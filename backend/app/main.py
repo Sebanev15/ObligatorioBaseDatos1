@@ -5,7 +5,11 @@ from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from .db import fetch_one, get_connection
-from .routers import complejos, jugadores, facultades, torneos, equipos, equipo_jugador_torneo, auth, reportes
+from .routers import (
+    auth, complejos, equipos, facultades, goles, jugadores, partidos,
+    partidos_equipos, planillas_partidos, reportes, sanciones_jugadores,
+    tarjetas, torneos, turnos,
+)
 
 logger = logging.getLogger("torneo")
 
@@ -38,9 +42,15 @@ api.include_router(complejos.router)
 
 api.include_router(facultades.router)
 api.include_router(torneos.router)
+api.include_router(turnos.router)
 api.include_router(equipos.router)
-api.include_router(equipo_jugador_torneo.router)
 api.include_router(auth.router)
+api.include_router(partidos.router)
+api.include_router(partidos_equipos.router)
+api.include_router(planillas_partidos.router)
+api.include_router(goles.router)
+api.include_router(tarjetas.router)
+api.include_router(sanciones_jugadores.router)
 api.include_router(reportes.router)
 
 app.include_router(api)

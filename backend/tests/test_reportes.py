@@ -42,6 +42,23 @@ class ReportsTests(unittest.TestCase):
         self.assertIn("p.id_torneo = %s AND p.estado = 'jugado'", sql)
         self.assertIn("WHEN g.autogol = 1", sql)
 
+    def test_usage_report_escapes_time_format_for_pymysql(self):
+        user = SimpleNamespace(rol="administrador")
+        connection = object()
+
+        with patch.object(reportes, "get_connection") as get_connection, patch.object(
+            reportes, "fetch_all", side_effect=[[], []]
+        ) as fetch_all:
+            get_connection.return_value.__enter__.return_value = connection
+
+            result = reportes.uso_canchas_y_turnos(17, user)
+
+        self.assertEqual(result, {"canchas": [], "turnos": []})
+        turnos_sql = fetch_all.call_args_list[1].args[1]
+        self.assertIn("TIME_FORMAT(t.hora_inicio, '%%H:%%i')", turnos_sql)
+        self.assertIn("TIME_FORMAT(t.hora_fin, '%%H:%%i')", turnos_sql)
+        self.assertEqual(fetch_all.call_args_list[1].args[2], (17,))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "./api";
+import { repairEncoding } from "./text";
 
 const reports = [
   { id: "posiciones", label: "Posiciones", route: "posiciones", columns: [["equipo", "Equipo"], ["partidos_jugados", "PJ"], ["partidos_ganados", "PG"], ["partidos_empatados", "PE"], ["partidos_perdidos", "PP"], ["goles_favor", "GF"], ["goles_contra", "GC"], ["diferencia_goles", "DG"], ["puntos", "Puntos"]] },
@@ -29,7 +30,8 @@ const valueLabels = {
 function display(value) {
   if (value === null || value === undefined) return "—";
   if (typeof value === "number") return value.toLocaleString("es-UY");
-  return valueLabels[value] || String(value);
+  const cleaned = typeof value === "string" ? repairEncoding(value.trim()) : String(value);
+  return valueLabels[cleaned] || cleaned;
 }
 
 function DataTable({ title, rows, columns }) {
@@ -105,36 +107,15 @@ function ReportContent({ report, data }) {
   }
 
   if (report.id === "tarjetas-fecha") {
-    return (
-      <div className="space-y-5">
-        <div className="rounded-2xl border border-base-200 bg-base-100 p-5 text-sm text-base-content/65 shadow-sm">
-          Consulta adicional: permite comparar la disciplina entre las fechas del torneo.
-        </div>
-        <DataTable title="Promedio de tarjetas por fecha" rows={data} columns={report.columns} />
-      </div>
-    );
+    return <DataTable title="Promedio de tarjetas por fecha" rows={data} columns={report.columns} />;
   }
 
   if (report.id === "localia") {
-    return (
-      <div className="space-y-5">
-        <div className="rounded-2xl border border-base-200 bg-base-100 p-5 text-sm text-base-content/65 shadow-sm">
-          Consulta adicional: compara victorias locales, empates y victorias visitantes. La tabla de posiciones asigna 3 puntos por victoria y 1 por empate.
-        </div>
-        <DataTable title="Resultados según localía" rows={data} columns={report.columns} />
-      </div>
-    );
+    return <DataTable title="Resultados según localía" rows={data} columns={report.columns} />;
   }
 
   if (report.id === "goles-facultad") {
-    return (
-      <div className="space-y-5">
-        <div className="rounded-2xl border border-base-200 bg-base-100 p-5 text-sm text-base-content/65 shadow-sm">
-          Consulta adicional: suma los goles acreditados a los equipos de cada facultad, incluidos los goles recibidos por autogol.
-        </div>
-        <DataTable title="Goles acreditados por facultad" rows={data} columns={report.columns} />
-      </div>
-    );
+    return <DataTable title="Goles acreditados por facultad" rows={data} columns={report.columns} />;
   }
 
   return <DataTable title={report.label} rows={data} columns={report.columns} />;

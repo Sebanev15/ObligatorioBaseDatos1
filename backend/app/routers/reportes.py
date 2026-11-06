@@ -155,8 +155,8 @@ def uso_canchas_y_turnos(id_torneo: IdTorneo, user: AnyUser):
         turnos = fetch_all(
             conn,
             """
-                SELECT t.id_turno, TIME_FORMAT(t.hora_inicio, '%%H:%i') AS hora_inicio,
-                       TIME_FORMAT(t.hora_fin, '%%H:%i') AS hora_fin,
+                SELECT t.id_turno, TIME_FORMAT(t.hora_inicio, '%%H:%%i') AS hora_inicio,
+                       TIME_FORMAT(t.hora_fin, '%%H:%%i') AS hora_fin,
                        COUNT(*) AS partidos_jugados
                 FROM partido p
                 JOIN turno t ON t.id_turno = p.id_turno
