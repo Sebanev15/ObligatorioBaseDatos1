@@ -115,7 +115,7 @@ function ReportContent({ report, data }) {
   }
 
   if (report.id === "goles-facultad") {
-    return <DataTable title="Goles acreditados por facultad" rows={data} columns={report.columns} />;
+    return <DataTable title="Goles por facultad" rows={data} columns={report.columns} />;
   }
 
   return <DataTable title={report.label} rows={data} columns={report.columns} />;

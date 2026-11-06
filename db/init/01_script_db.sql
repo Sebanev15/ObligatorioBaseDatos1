@@ -2,7 +2,7 @@
 CREATE TABLE login (
     correo     VARCHAR(255) PRIMARY KEY,
     contrasena VARCHAR(255) NOT NULL,
-    rol        VARCHAR(20)  NOT NULL CHECK (rol IN ('administrador', 'planillero'))
+    rol        ENUM('administrador', 'planillero') NOT NULL
 );
 -- Listo en backend
 CREATE TABLE facultad (
@@ -18,9 +18,7 @@ CREATE TABLE jugador (
     email            VARCHAR(255) NOT NULL UNIQUE,
     fecha_nacimiento DATE         NOT NULL,
     id_facultad      INTEGER      NOT NULL,
-    tipo             VARCHAR(20)  NOT NULL
-
-    CHECK (tipo IN ('grado', 'posgrado', 'docente', 'funcionario')),
+    tipo             ENUM('grado', 'posgrado', 'docente', 'funcionario') NOT NULL,
     FOREIGN KEY (id_facultad) REFERENCES facultad (id_facultad)
 );
 -- Listo en backend
@@ -31,8 +29,7 @@ CREATE TABLE torneo (
     semestre     INTEGER      NOT NULL CHECK (semestre IN (1, 2)),
     fecha_inicio DATE         NOT NULL,
     fecha_fin    DATE         NOT NULL,
-    estado       VARCHAR(20)  NOT NULL DEFAULT 'inscripcion'
-    CHECK (estado IN ('inscripcion', 'en curso', 'finalizado')),
+    estado       ENUM('inscripcion', 'en curso', 'finalizado') NOT NULL DEFAULT 'inscripcion',
     CHECK (fecha_fin >= fecha_inicio)
 );
 -- Listo en backend
@@ -78,7 +75,7 @@ CREATE TABLE complejo (
 CREATE TABLE cancha (
     nombre_cancha VARCHAR(100) NOT NULL,
     id_complejo   INTEGER      NOT NULL,
-    superficie    VARCHAR(20)  NOT NULL CHECK (superficie IN ('sintetico', 'parquet')),
+    superficie    ENUM('sintetico', 'parquet') NOT NULL,
     techada       BOOLEAN      NOT NULL DEFAULT FALSE,
     PRIMARY KEY (nombre_cancha, id_complejo),
     FOREIGN KEY (id_complejo) REFERENCES complejo (id_complejo)
@@ -102,8 +99,7 @@ CREATE TABLE partido (
     id_turno            INTEGER      NOT NULL,
     nombre_cancha       VARCHAR(100) NOT NULL,
     id_complejo         INTEGER      NOT NULL,
-    estado              VARCHAR(20)  NOT NULL DEFAULT 'programado'
-    CHECK (estado IN ('programado', 'jugado', 'postergado', 'cancelado')),
+    estado              ENUM('programado', 'jugado', 'postergado', 'cancelado') NOT NULL DEFAULT 'programado',
     FOREIGN KEY (id_torneo) REFERENCES torneo (id_torneo),
     FOREIGN KEY (id_turno)  REFERENCES turno (id_turno),
     FOREIGN KEY (nombre_cancha, id_complejo) REFERENCES cancha (nombre_cancha, id_complejo),
@@ -140,7 +136,7 @@ CREATE TABLE tarjeta (
     id_partido INTEGER     NOT NULL,
     ci_jugador INTEGER     NOT NULL,
     minuto     INTEGER     NOT NULL CHECK (minuto BETWEEN 0 AND 130),
-    color      VARCHAR(10) NOT NULL CHECK (color IN ('amarilla', 'roja')),
+    color      ENUM('amarilla', 'roja') NOT NULL,
     FOREIGN KEY (id_partido, ci_jugador) REFERENCES planilla_partido (id_partido, ci_jugador)
 );
 
@@ -149,8 +145,7 @@ CREATE TABLE sancion_jugador (
     id_sancion          INT AUTO_INCREMENT      PRIMARY KEY,
     ci_jugador          INTEGER     NOT NULL,
     id_torneo           INTEGER     NOT NULL,
-    motivo              VARCHAR(30) NOT NULL
-    CHECK (motivo IN ('roja', 'acumulacion de amarillas', 'disciplinaria')),
+    motivo              ENUM('roja', 'acumulacion de amarillas', 'disciplinaria') NOT NULL,
     numero_fecha_inicio INTEGER     NOT NULL CHECK (numero_fecha_inicio > 0),
     cantidad_fechas     INTEGER     NOT NULL CHECK (cantidad_fechas > 0),
     FOREIGN KEY (ci_jugador) REFERENCES jugador (ci),
