@@ -105,3 +105,38 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* Make compact table actions read as controls instead of plain text links. */
+.btn.btn-ghost.btn-xs {
+  min-height: 2rem;
+  padding-inline: 0.65rem;
+  border: 1px solid #d8e2df;
+  border-radius: 0.55rem;
+  background-color: #fff;
+  color: #34413e;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(20 40 35 / 5%);
+}
+
+.btn.btn-ghost.btn-xs:hover:not(:disabled) {
+  border-color: #9bb9b1;
+  background-color: #f3f8f6;
+}
+
+.btn.btn-ghost.btn-xs.text-error {
+  border-color: #f0caca;
+  background-color: #fffafa;
+  color: #c33b3b;
+}
+
+.btn.btn-ghost.btn-xs.text-error:hover:not(:disabled) {
+  border-color: #e6a4a4;
+  background-color: #fff0f0;
+}
+
+@media (max-width: 640px) {
+  .table td .btn.btn-ghost.btn-xs {
+    min-height: 2.25rem;
+    padding-inline: 0.7rem;
+  }
+}

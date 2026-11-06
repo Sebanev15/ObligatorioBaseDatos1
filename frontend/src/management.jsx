@@ -15,7 +15,6 @@ const tournamentStates = ["inscripcion", "en curso", "finalizado"];
 const resources = {
   torneos: {
     title: "Torneos",
-    description: "Consultá los campeonatos y su estado.",
     endpoint: "/api/torneos?limit=200",
     collection: "/api/torneos",
     id: "id_torneo",
@@ -32,7 +31,6 @@ const resources = {
   },
   equipos: {
     title: "Equipos",
-    description: "Equipos registrados por torneo y facultad.",
     endpoint: "/api/equipos?limit=200",
     collection: "/api/equipos",
     id: "id_equipo",
@@ -46,7 +44,6 @@ const resources = {
   },
   jugadores: {
     title: "Jugadores",
-    description: "Directorio de jugadores participantes.",
     endpoint: "/api/jugadores?limit=200",
     collection: "/api/jugadores",
     id: "ci",
@@ -64,7 +61,6 @@ const resources = {
   },
   facultades: {
     title: "Facultades",
-    description: "Facultades que participan en la competencia.",
     endpoint: "/api/facultades?limit=200",
     collection: "/api/facultades",
     id: "id_facultad",
@@ -74,7 +70,6 @@ const resources = {
   },
   complejos: {
     title: "Complejos deportivos",
-    description: "Sedes y ubicaciones donde se juega.",
     endpoint: "/api/complejos",
     collection: "/api/complejos",
     id: "id_complejo",
@@ -526,7 +521,6 @@ export default function ManagementPage({ resource }) {
         <div>
           <p className="mb-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#248C7E]">Administración</p>
           <h1 className="!m-0 !text-3xl !font-bold !tracking-tight text-base-content sm:!text-4xl">{config.title}</h1>
-          <p className="mt-2 text-sm text-base-content/60 sm:text-base">{config.description}</p>
         </div>
         <div className="flex items-center gap-3">
           <span className="rounded-xl border border-base-200 bg-base-100 px-4 py-2.5 text-sm text-base-content/60 shadow-sm">
@@ -541,7 +535,6 @@ export default function ManagementPage({ resource }) {
         <div className="flex flex-col gap-4 border-b border-base-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <h2 className="!mb-1 !text-base !font-semibold text-base-content">Listado de {config.title.toLocaleLowerCase()}</h2>
-            <p className="text-xs text-base-content/50">Información registrada en el sistema</p>
           </div>
           <label className="input input-bordered flex w-full items-center gap-2 bg-base-100 sm:max-w-xs">
             <input
@@ -620,9 +613,11 @@ function FragmentRows({ rowKey, row, config, isAdmin, canExpand, expanded, onTog
         ))}
         {(isAdmin || canExpand) && (
           <td className="whitespace-nowrap">
-            {canExpand && <button className="btn btn-ghost btn-xs" onClick={onToggle}>{expanded ? "Cerrar" : resourceLabel(config)} </button>}
-            {isAdmin && <button className="btn btn-ghost btn-xs" onClick={onEdit}>Editar</button>}
-            {isAdmin && <button className="btn btn-ghost btn-xs text-error" onClick={onDelete}>Eliminar</button>}
+            <div className="flex items-center gap-1.5">
+              {canExpand && <button className="btn btn-ghost btn-xs" onClick={onToggle}>{expanded ? "Cerrar" : resourceLabel(config)}</button>}
+              {isAdmin && <button className="btn btn-ghost btn-xs" onClick={onEdit}>Editar</button>}
+              {isAdmin && <button className="btn btn-ghost btn-xs text-error" onClick={onDelete}>Eliminar</button>}
+            </div>
           </td>
         )}
       </tr>

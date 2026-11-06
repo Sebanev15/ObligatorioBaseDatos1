@@ -50,9 +50,6 @@ export default function Dashboard() {
       <div className="mb-8 flex flex-col gap-2 sm:mb-10">
         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#248C7E]">Bienvenido</p>
         <h1 className="!m-0 !text-3xl !font-bold !tracking-tight text-base-content sm:!text-4xl">Resumen general</h1>
-        <p className="max-w-2xl text-sm leading-relaxed text-base-content/60 sm:text-base">
-          Una vista rápida de las entidades principales del torneo.
-        </p>
       </div>
       {error && <div role="alert" className="alert alert-error mb-6"><span>{error}</span></div>}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

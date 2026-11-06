@@ -85,11 +85,10 @@ function ReportContent({ report, data }) {
   if (report.kind === "statuses") {
     const stats = data || {};
     return (
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-10 sm:grid-cols-2 xl:grid-cols-3">
         <MetricCard label="Partidos jugados" value={`${display(stats.porcentaje_jugados ?? 0)}%`} detail={`${display(stats.jugados ?? 0)} partidos`} />
         <MetricCard label="Postergados" value={`${display(stats.porcentaje_postergados ?? 0)}%`} detail={`${display(stats.postergados ?? 0)} partidos`} />
         <MetricCard label="Cancelados" value={`${display(stats.porcentaje_cancelados ?? 0)}%`} detail={`${display(stats.cancelados ?? 0)} partidos`} />
-        <MetricCard label="Partidos considerados" value={display(stats.total_considerado ?? 0)} detail="No incluye los partidos programados" />
       </div>
     );
   }
@@ -183,7 +182,6 @@ export default function ReportsPage() {
         <div>
           <p className="mb-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#248C7E]">Área de deportes</p>
           <h1 className="!m-0 !text-3xl !font-bold !tracking-tight text-base-content sm:!text-4xl">Reportes y métricas</h1>
-          <p className="mt-2 text-sm text-base-content/60 sm:text-base">Indicadores deportivos de las ediciones del torneo.</p>
         </div>
         <label className="form-control w-full lg:max-w-sm">
           <span className="label-text mb-2 font-medium">Edición del torneo</span>

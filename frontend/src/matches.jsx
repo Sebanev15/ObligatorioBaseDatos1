@@ -513,7 +513,13 @@ function MatchEvents({ match, isAdmin }) {
             {teamSheet.map((player) => (
               <span className="badge badge-lg gap-2" key={player.ci_jugador}>
                 {display(player.jugador)}
-                <button type="button" aria-label={`Quitar a ${display(player.jugador)}`} disabled={busy} onClick={() => deleteEvent(`${base}/planilla/${player.ci_jugador}`, `¿Quitar a ${display(player.jugador)} de la planilla?`)}>×</button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-circle btn-xs text-error"
+                  aria-label={`Quitar a ${display(player.jugador)}`}
+                  disabled={busy}
+                  onClick={() => deleteEvent(`${base}/planilla/${player.ci_jugador}`, `¿Quitar a ${display(player.jugador)} de la planilla?`)}
+                >×</button>
               </span>
             ))}
           </div>
@@ -534,7 +540,7 @@ function MatchEvents({ match, isAdmin }) {
           <ul className="divide-y divide-base-200">{teamGoals.map((goal) => (
             <li className="flex items-center justify-between py-2 text-sm" key={goal.id_gol}>
               <span>{goal.minuto}' · {display(goal.jugador)}{goal.autogol ? " (autogol)" : ""}</span>
-              <span className="flex gap-1"><button type="button" className="btn btn-ghost btn-xs" onClick={() => editGoal(goal)}>Editar</button><button type="button" className="btn btn-ghost btn-xs text-error" onClick={() => deleteEvent(`${base}/goles/${goal.id_gol}`, "¿Eliminar este gol?")}>Eliminar</button></span>
+              <span className="flex gap-1.5"><button type="button" className="btn btn-ghost btn-xs" onClick={() => editGoal(goal)}>Editar</button><button type="button" className="btn btn-ghost btn-xs text-error" onClick={() => deleteEvent(`${base}/goles/${goal.id_gol}`, "¿Eliminar este gol?")}>Eliminar</button></span>
             </li>
           ))}</ul>
         </form>
@@ -552,7 +558,7 @@ function MatchEvents({ match, isAdmin }) {
           <ul className="divide-y divide-base-200">{teamCards.map((card) => (
             <li className="flex items-center justify-between py-2 text-sm" key={card.id_tarjeta}>
               <span>{card.minuto}' · {display(card.jugador)} · {display(card.color)}</span>
-              <span className="flex gap-1"><button type="button" className="btn btn-ghost btn-xs" onClick={() => editCard(card)}>Editar</button><button type="button" className="btn btn-ghost btn-xs text-error" onClick={() => deleteEvent(`${base}/tarjetas/${card.id_tarjeta}`, "¿Eliminar esta tarjeta?")}>Eliminar</button></span>
+              <span className="flex gap-1.5"><button type="button" className="btn btn-ghost btn-xs" onClick={() => editCard(card)}>Editar</button><button type="button" className="btn btn-ghost btn-xs text-error" onClick={() => deleteEvent(`${base}/tarjetas/${card.id_tarjeta}`, "¿Eliminar esta tarjeta?")}>Eliminar</button></span>
             </li>
           ))}</ul>
         </form>
@@ -622,7 +628,7 @@ export default function MatchesPage() {
   return (
     <section>
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-        <div><p className="mb-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#248C7E]">Competencia</p><h1 className="!m-0 !text-3xl !font-bold text-base-content">Partidos</h1><p className="mt-2 text-sm text-base-content/60">Fixture, planillas y resultados.</p></div>
+        <div><p className="mb-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#248C7E]">Competencia</p><h1 className="!m-0 !text-3xl !font-bold text-base-content">Partidos</h1></div>
         {isAdmin && <button className="btn bg-[#248C7E] text-white" onClick={() => setEditing({ record: null })}>Programar partido</button>}
       </div>
       {error && <div role="alert" className="alert alert-error mb-4"><span>{display(error)}</span></div>}
@@ -644,9 +650,11 @@ export default function MatchesPage() {
                 </select>
                 ) : display(match.estado)}</td>
                 <td className="whitespace-nowrap">
-                  <button className="btn btn-ghost btn-xs" onClick={() => setExpanded(expanded === match.id_partido ? null : match.id_partido)}>{expanded === match.id_partido ? "Cerrar" : "Planilla"}</button>
-                  {isAdmin && match.estado !== "jugado" && <button className="btn btn-ghost btn-xs" onClick={() => setEditing({ record: match })}>Editar</button>}
-                  {isAdmin && match.estado !== "jugado" && <button className="btn btn-ghost btn-xs text-error" onClick={() => deleteMatch(match)}>Eliminar</button>}
+                  <div className="flex items-center gap-1.5">
+                    <button className="btn btn-ghost btn-xs" onClick={() => setExpanded(expanded === match.id_partido ? null : match.id_partido)}>{expanded === match.id_partido ? "Cerrar" : "Planilla"}</button>
+                    {isAdmin && match.estado !== "jugado" && <button className="btn btn-ghost btn-xs" onClick={() => setEditing({ record: match })}>Editar</button>}
+                    {isAdmin && match.estado !== "jugado" && <button className="btn btn-ghost btn-xs text-error" onClick={() => deleteMatch(match)}>Eliminar</button>}
+                  </div>
                 </td>
               </tr>
               {expanded === match.id_partido && <tr key={`${match.id_partido}-events`}><td colSpan="8" className="p-0"><MatchEvents match={match} isAdmin={isAdmin} /></td></tr>}

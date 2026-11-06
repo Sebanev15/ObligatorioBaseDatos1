@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "./api";
 import { repairEncoding } from "./text";
+import "./tables.css";
 
 async function request(url, options) {
   const response = await apiFetch(url, options);
@@ -166,7 +167,7 @@ export default function SanctionsPage() {
   return (
     <section>
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-        <div><p className="mb-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#248C7E]">Administración</p><h1 className="!m-0 !text-3xl !font-bold text-base-content">Sanciones</h1><p className="mt-2 text-sm text-base-content/60">Las sanciones automáticas se originan en tarjetas; las disciplinarias las registra la organización.</p></div>
+        <div><p className="mb-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#248C7E]">Administración</p><h1 className="!m-0 !text-3xl !font-bold text-base-content">Sanciones</h1></div>
         <button className="btn bg-[#248C7E] text-white" onClick={() => setEditing({ record: null })}>Aplicar sanción</button>
       </div>
       {error && <div role="alert" className="alert alert-error mb-4"><span>{display(error)}</span></div>}
